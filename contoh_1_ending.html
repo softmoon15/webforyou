@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Untuk Fer</title>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; height: 100vh; font-family: 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top, #1c2b45, #0e1625);
+  overflow: hidden; display: flex; justify-content: center; align-items: center;
+}
+.side { position: absolute; top: 0; width: 60px; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-around; align-items: center; z-index: 1; }
+.left { left: 5px; } .right { right: 5px; }
+.side span { font-size: 22px; opacity: 0.5; animation: floatSide 4s ease-in-out infinite; }
+@keyframes floatSide { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-20px) rotate(15deg); } }
+
+.card {
+  width: 90%; max-width: 400px; min-height: 480px;
+  background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+  border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 25px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; justify-content: space-between; z-index: 10; color: white;
+}
+
+#game-container { display: none; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px auto; width: 100%; }
+.memory-card {
+  height: 85px; background: rgba(161, 196, 253, 0.2); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 35px; color: transparent; cursor: pointer; transition: 0.4s; border: 1px solid rgba(255,255,255,0.1);
+}
+.memory-card.flipped { background: white; color: initial; transform: rotateY(180deg); }
+
+#text { font-size: 16px; line-height: 1.6; min-height: 140px; display: flex; align-items: center; justify-content: center; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.big-text { font-size: 26px !important; font-weight: 700; color: #a1c4fd; }
+
+button {
+  border: none; background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+  color: #1c2b45; padding: 15px; border-radius: 20px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); font-size: 15px;
+}
+
+.visual-icon { font-size: 60px; animation: float 3s ease-in-out infinite; margin-top: 10px; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+/* Animasi Emote Gede */
+.big-emote { font-size: 80px; display: block; margin: 20px auto; animation: pulse 2s infinite; }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+</style>
+</head>
+<body>
+
+<div class="side left"><span>🌙</span><span>⭐</span><span>✨</span><span>💫</span><span>🌙</span></div>
+<div class="side right"><span>⭐</span><span>🌙</span><span>✨</span><span>💫</span><span>⭐</span></div>
+
+<audio id="bgm" src="https://pomf2.lain.la/f/nxamcqug.mp3" loop preload="auto"></audio>
+
+<div class="card">
+  <div id="content">
+    <div id="visual-icon" class="visual-icon">🎁</div>
+    <h2 id="title" style="font-size: 18px;">Ada kado buat kamu..</h2>
+    <div id="text">Main game bentar ya baru kebuka!</div>
+    <div id="game-container">
+      <div class="memory-card" data-symbol="🧸">🧸</div>
+      <div class="memory-card" data-symbol="🐱">🐱</div>
+      <div class="memory-card" data-symbol="🍭">🍭</div>
+      <div class="memory-card" data-symbol="🧸">🧸</div>
+      <div class="memory-card" data-symbol="🐱">🐱</div>
+      <div class="memory-card" data-symbol="🍭">🍭</div>
+    </div>
+  </div>
+  <button id="main-btn" onclick="startGame()">Buka Kado 🌙</button>
+</div>
+
+<script>
+const pages = [
+  "hai fer 👋",
+  "u know me, right? sorry kalo ganggu.. cuma mau bilang bntar, gapapa kan?",
+  "kamu lagi suka main roblox kan? robuxnya delay 7 days yaa tunggu ajaa, sorry gabisa banyak, intinya bkn itu yg mau aku bilang",
+  "bntar lagi kan mau puasa ya, jadi aku sekeluarga mau minta maaf selama ini ke kamu, aku tau aku byk salah",
+  "kamu tau ga? aku disuruh cek ke psikiater sama ortu ku wkwk, ya meskipun info ga penting juga kan, intinya aku minta maaf aja yah",
+  "aku janji mulai skrg ga akan ganggu kamu lagi fer. berbahagialah selalu yaa ✨"
+];
+
+let pageIndex = 0;
+let musicPlayed = false;
+let flippedCards = [];
+let matchedCount = 0;
+let typingInterval;
+
+function startGame() {
+  const music = document.getElementById("bgm");
+  if (!musicPlayed) { 
+    music.play().catch(e => console.log("Audio play deferred"));
+    musicPlayed = true; 
+  }
+  document.getElementById("visual-icon").innerText = "🫣";
+  document.getElementById("title").innerText = "Samakan Kartunya!";
+  document.getElementById("text").style.display = "none";
+  document.getElementById("main-btn").style.display = "none";
+  document.getElementById("game-container").style.display = "grid";
+  shuffleCards();
+}
+
+function shuffleCards() {
+  const container = document.getElementById("game-container");
+  const cards = Array.from(container.children);
+  cards.sort(() => Math.random() - 0.5);
+  cards.forEach(card => { container.appendChild(card); card.addEventListener('click', flipCard); });
+}
+
+function flipCard() {
+  if (flippedCards.length < 2 && !this.classList.contains('flipped')) {
+    this.classList.add('flipped');
+    flippedCards.push(this);
+    if (flippedCards.length === 2) checkMatch();
+  }
+}
+
+function checkMatch() {
+  const [card1, card2] = flippedCards;
+  if (card1.dataset.symbol === card2.dataset.symbol) {
+    matchedCount++; flippedCards = [];
+    if (matchedCount === 3) {
+      setTimeout(() => {
+        Swal.fire({title: 'Hore!', text: 'Permainan selesai! 🧸', icon: 'success', confirmButtonColor: '#a1c4fd'});
+        startMessage();
+      }, 500);
+    }
+  } else {
+    setTimeout(() => { card1.classList.remove('flipped'); card2.classList.remove('flipped'); flippedCards = []; }, 800);
+  }
+}
+
+function startMessage() {
+  document.getElementById("game-container").style.display = "none";
+  document.getElementById("title").style.display = "none";
+  document.getElementById("text").style.display = "flex";
+  document.getElementById("visual-icon").innerText = "🌙";
+  document.getElementById("main-btn").style.display = "block";
+  showPage();
+}
+
+function showPage() {
+  clearInterval(typingInterval);
+  let charIndex = 0;
+  const currentText = pages[pageIndex];
+  const textEl = document.getElementById("text");
+  textEl.innerHTML = "";
+  textEl.className = (pageIndex === 0) ? "big-text" : "";
+  typingInterval = setInterval(() => {
+    if (charIndex < currentText.length) { textEl.innerHTML += currentText.charAt(charIndex); charIndex++; }
+    else { clearInterval(typingInterval); }
+  }, 45);
+  const btn = document.getElementById("main-btn");
+  if (pageIndex === pages.length - 1) {
+    btn.innerText = "Selesai ✨";
+    btn.onclick = () => { 
+        btn.style.display = "none"; 
+        Swal.fire({
+            html: '<span class="big-emote">🧸✨</span><br><b>Berbahagialah selalu ya, Fer!</b>',
+            confirmButtonColor: '#a1c4fd'
+        }); 
+    };
+  } else {
+    btn.innerText = "Lanjut 🌙";
+    btn.onclick = nextPage;
+  }
+}
+
+function nextPage() { pageIndex++; showPage(); }
+</script>
+</body>
+</html>
